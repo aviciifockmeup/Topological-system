@@ -1,0 +1,25 @@
+server:
+  port: 9090
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/zhoule?serverTimezone=GMT%2b8
+    username: root
+    password: 123456
+  neo4j:
+    authentication:
+      username: neo4j
+      password: zhoule123
+    uri: bolt://localhost:7687
+
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+
+files:
+  upload:
+    path: D:/Projects/SystemA/springboot/files/
+
