@@ -1,19 +1,18 @@
 package com.avicii.springboot.controller;
 
 import cn.hutool.core.io.resource.ClassPathResource;
+import cn.hutool.json.serialize.JSONArraySerializer;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.avicii.springboot.entity.DetectProcess;
-import com.avicii.springboot.entity.IpData;
-import com.avicii.springboot.entity.IpKeyNode;
-import com.avicii.springboot.entity.IpNode;
+import com.avicii.springboot.entity.*;
 import com.avicii.springboot.mapper.IpEdgeMapper;
 import com.avicii.springboot.mapper.IpKeyNodeMapper;
 import com.avicii.springboot.mapper.IpNodeMapper;
 import com.avicii.springboot.service.IpKeyNodeService;
 import com.avicii.springboot.service.IpNodeService;
 import com.fasterxml.jackson.core.JsonParser;
+import org.apache.coyote.Request;
 import org.apache.coyote.http11.upgrade.UpgradeProcessorExternal;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -163,6 +162,52 @@ public class IpNodeController {
 
 
 
+    @GetMapping("/create100Ips")
+    public List<IpNode> create100Ips() throws IOException, InterruptedException {
+
+        // 初始化ip节点组
+        List<IpNode> IpNodes = new ArrayList<>();
+        // 使用python脚本（封装在getIpNode方法里）获取ip节点组的values
+        IpData nodeData = ipNodeService.get100IpNode();
+
+        List<String> IpNodeValues = nodeData.getIpNodeValueList();
+
+        List<String> IpEdgeValues = nodeData.getIpEdgeValueList();
+
+
+        // 为ip节点实体赋值value
+        for (String IpNodeValue : IpNodeValues){
+            IpNode ipNode = new IpNode();
+            ipNode.setValue(IpNodeValue);
+            IpNodes.add(ipNode);
+//            ipNodeMapper.save(ipNode);
+
+        }
+
+        // 先将ip节点组实体存入neo4j
+        ipNodeMapper.saveAll(IpNodes);
+
+        // 解析ip边
+        for (String item : IpEdgeValues){
+            System.out.printf(item);
+
+            String[] ipGroup = item.split(",");
+            String startIP = ipGroup[0];
+            String endIP = ipGroup[1];
+
+            // 用自定义CQL在neo4j中创建边
+            Integer i = null;
+            i = ipNodeMapper.createRelationship(startIP, "DRelationship", endIP);
+
+        }
+
+
+        return IpNodes;
+
+
+
+    }
+
 
 
 
@@ -171,8 +216,7 @@ public class IpNodeController {
     public List<IpNode> findAll(){
 
 
-        List<IpNode> ipNodeList = new ArrayList<>();
-        ipNodeList = ipNodeService.findAll();
+        List<IpNode> ipNodeList = ipNodeService.findAll();
 
         // 遍历IpNode
         for (IpNode ipNode : ipNodeList){
@@ -200,21 +244,102 @@ public class IpNodeController {
 
     // 测试***********************************在接口中向另一台机器发送http请求并获得响应结果
     @GetMapping("/getBaidu")
-    public String getBaidu() throws Exception{
+    public RequestTest getBaidu(@RequestParam (defaultValue = "")String dip,
+                           @RequestParam (defaultValue = "")String protocal,
+                           @RequestParam (defaultValue = "")String max_ttl,
+                           @RequestParam (defaultValue = "")String timeout) throws Exception{
 
-        HttpClient httpClient = HttpClientBuilder.create().build();
-        HttpGet httpGet = new HttpGet("http://118.24.129.105:9877/");
-        HttpResponse response = httpClient.execute(httpGet);
-        HttpEntity entity = response.getEntity();
-        String s = EntityUtils.toString(entity, "utf-8");
+        System.out.printf(dip);
+        System.out.printf(protocal);
+        System.out.printf(max_ttl);
+        System.out.printf(timeout);
 
-        System.out.printf(s);
+        RequestTest requestTest = new RequestTest();
+        requestTest.setDip(dip);
+        requestTest.setProtocal(protocal);
+        requestTest.setMax_ttl(max_ttl);
+        requestTest.setTimeout(timeout);
+//        HttpClient httpClient = HttpClientBuilder.create().build();
+//        HttpGet httpGet = new HttpGet("http://118.24.129.105:9877/");
+//        HttpResponse response = httpClient.execute(httpGet);
+//        HttpEntity entity = response.getEntity();
+//        String s = EntityUtils.toString(entity, "utf-8");
+//
+//        System.out.printf(s);
 
 
-        return s;
+        return requestTest;
 
 
     }
+    /**
+     11-17 与ZTH合代码
+     发起一个总探测任务，输出总任务id taskidallocated
+     */
+    @GetMapping("/startDetection")
+    public String startDetection(@RequestParam (defaultValue = "")String target,
+                                 @RequestParam (defaultValue = "")String protocols,
+                                 @RequestParam Integer model,
+                                 @RequestParam Integer maxttl,
+                                 @RequestParam Float timeout) throws Exception{
+
+        HttpClient httpClient = HttpClientBuilder.create().build();
+        HttpGet httpGet = new HttpGet("http://118.24.129.105:9877/task/trace?target=" + target + "&protocols=" + protocols + "&model=" + model + "&maxttl=" + maxttl + "&timeout=" + timeout);
+        HttpResponse response = httpClient.execute(httpGet);
+        HttpEntity entity = response.getEntity();
+        String taskIdAllocated = EntityUtils.toString(entity, "utf-8");
+
+
+        return taskIdAllocated;
+    }
+
+
+    /**
+     11-17 与ZTH合代码
+     获取当前任务各个worker返回的结果（汇总后）
+     前端应反复请求此接口（每2s）用于动态展示
+
+     后续：再写一个探测完的接口，用于存储本次探测任务的结果数据
+     */
+    @GetMapping("/getDetectionResult")
+    public IpData getDetectionResult() throws Exception{
+
+        IpData ipData = new IpData();
+
+        HttpClient httpClient = HttpClientBuilder.create().build();
+        HttpGet httpGet = new HttpGet("http://118.24.129.105:9877/task/get/current");
+        HttpResponse response = httpClient.execute(httpGet);
+        HttpEntity entity = response.getEntity();
+        String detectionResult = EntityUtils.toString(entity, "utf-8");
+
+        JSONObject jsonObject = JSON.parseObject(detectionResult);
+        JSONObject graphObject = jsonObject.getJSONObject("graph");
+
+//        System.out.printf("graphObject: " + graphObject);
+
+        JSONArray nodesArray = graphObject.getJSONArray("nodes_list");
+        JSONArray edgesArray= graphObject.getJSONArray("edges_list");
+
+        List<String> nodesList = nodesArray.toJavaList(String.class);
+        List<String> edgeslist = edgesArray.toJavaList(String.class);
+
+        ipData.setIpNodeValueList(nodesList);
+        ipData.setIpEdgeValueList(edgeslist);
+
+
+        int Nlength = nodesList.size();
+        int Elength = edgeslist.size();
+
+        System.out.printf(String.valueOf(Nlength) + "AND" + String.valueOf(Elength) + "\n");
+
+
+
+        return ipData;
+    }
+
+
+
+
 
 
     // 测试***********************************延时显示拓扑更新过程
@@ -282,7 +407,7 @@ public class IpNodeController {
         List<String> IpEdgeList = new ArrayList<>();
 
         // jsonPath应该是从数据库最新的抽象拓扑图取出来，写进的json文件
-        jsonPath = "D:\\Projects\\SystemA\\springboot\\springboot\\src\\main\\python\\input.json";
+        jsonPath = "D:\\Projects\\SystemA\\springboot\\springboot\\src\\main\\python\\input1.json";
         String keyNodeResult = null;
         ipKeyNodeList = ipKeyNodeService.getKeyNode(jsonPath);
 
@@ -382,6 +507,8 @@ public class IpNodeController {
 
 
     }
+
+
 
 
 }

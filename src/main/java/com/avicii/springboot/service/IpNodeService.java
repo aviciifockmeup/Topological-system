@@ -121,6 +121,51 @@ public class IpNodeService {
 
 
 
+    public IpData get100IpNode()throws IOException, InterruptedException{
+        String result = null;
+        List<String> IpNodeValueList = new ArrayList<>();
+        List<String> IpEdgeValueList = new ArrayList<>();
+        IpData ipData = new IpData();
+        try {
+            result = PythonConfig1.get100IpsMap();
+
+//            System.out.printf(String.valueOf(result.length()));
+
+//            JSONArray jsonArray = JSONArray.parseArray(result);
+//
+//            jsonArray.getJSONObject(1);
+
+            JSONObject jsonObject = JSONObject.parseObject(result);
+
+            String node_list = jsonObject.getString("node_list");
+
+            String edge_list = jsonObject.getString("edge_list");
+
+            JSONArray nodeJsonArray = JSONArray.parseArray(node_list);
+            JSONArray edgeJsonArray = JSONArray.parseArray(edge_list);
+
+            for (int i = 0; i < nodeJsonArray.size(); i++) {
+                String item = nodeJsonArray.getString(i);
+                IpNodeValueList.add(item);
+            }
+
+            for (int i = 0; i < edgeJsonArray.size(); i++) {
+                String item = edgeJsonArray.getString(i);
+                IpEdgeValueList.add(item);
+            }
+
+            ipData.setIpNodeValueList(IpNodeValueList);
+            ipData.setIpEdgeValueList(IpEdgeValueList);
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ipData;
+
+    }
+
+
 
 
 

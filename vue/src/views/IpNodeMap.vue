@@ -16,6 +16,8 @@
 import * as echarts from 'echarts'
 import {forEach} from "core-js/stable/dom-collections";
 import {looseEqual} from "element-ui";
+import Device from '../assets/device.png';
+
 
 
 
@@ -49,7 +51,7 @@ export default {
           name:item.value,
           draggable: true,
           // color: "#03f",
-          symbol: 'react'  // 可以使用不同的符号，如 'circle', 'rect', 'triangle', 'diamond' 等
+          symbol: 'image://' + Device  // 可以使用不同的符号，如 'circle', 'rect', 'triangle', 'diamond' 等
 
         });
 
@@ -64,6 +66,7 @@ export default {
               opacity: 0.7,
               width: 1,
               curveness: 0,
+              edgeLength: 0
               // color: "#014",
             }
 
@@ -106,14 +109,15 @@ export default {
             force: {
               // initLayout: 'circular'
               // gravity: 0
-              repulsion: 100,
+              repulsion: 300,
               edgeLength: 5
             },
 
             lineStyle: {
               opacity: 0.7,
-              width: 1,
+              width: 5,
               curveness: 0,
+              edgeLength: 500
               // color: ''
             }
 

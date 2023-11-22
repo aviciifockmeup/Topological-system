@@ -116,4 +116,43 @@ public class PythonConfig1 {
 
 
 
+    public static String get100IpsMap() throws InterruptedException, IOException {
+        String outputString = null;
+        int exitCode = 0;
+        try {
+            // 构建 Python 命令及参数
+            String pythonScript = "D:\\Projects\\SystemA\\springboot\\springboot\\src\\main\\python\\ips.py";
+            ProcessBuilder processBuilder =new ProcessBuilder(pyPath, pythonScript);
+            // 启动进程并执行命令
+            Process process =processBuilder.start();
+            // 获取命令输出
+            BufferedReader reader =new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            String line;
+            StringBuilder output =new StringBuilder();
+            StringBuilder errorOutput = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                output.append(line);
+            }
+            while ((line = errorReader.readLine()) != null) {
+                errorOutput.append(line).append("\n");
+            }
+            exitCode = process.waitFor();
+            // 打印标准输出和标准错误输出
+            System.out.println("Standard Output: " + output.toString());
+            System.out.println("Error Output: " + errorOutput.toString());
+            System.out.println("Exit Code: " + exitCode);
+
+            outputString = output.toString();
+
+        } catch (IOException | InterruptedException e){
+            e.printStackTrace();
+        }
+
+
+        return outputString;
+    }
+
+
+
 }

@@ -47,11 +47,14 @@ export default {
         console.log(item)
 
         var nodeColor;
-        if(item.keyValue > 0.5 ){
+        if(item.keyValue > 0.03 ){
           nodeColor = "#ff0000"
         }
-        else {
+        else if(0.02 < item.keyValue < 0.03){
           nodeColor = "#add8e6"
+        }
+        else{
+          nodeColor = "#f08080"
         }
         nodes.push({
           name:item.value,
@@ -59,7 +62,7 @@ export default {
           symbol: 'react',  // 可以使用不同的符号，如 'circle', 'rect', 'triangle', 'diamond' 等
           itemStyle: {
             color: nodeColor,
-          }
+          },
 
         });
 
@@ -117,7 +120,7 @@ export default {
             force: {
               // initLayout: 'circular'
               // gravity: 0
-              repulsion: 100,
+              repulsion: 300,
               edgeLength: 5
             },
 

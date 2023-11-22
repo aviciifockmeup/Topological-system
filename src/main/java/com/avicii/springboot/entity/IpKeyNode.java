@@ -1,6 +1,7 @@
 package com.avicii.springboot.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.Id;
@@ -25,6 +26,7 @@ public class IpKeyNode {
 
     };
 
+    @JsonIgnore
     @Relationship(type = "IPRELATIONSHIP", direction = Relationship.Direction.OUTGOING)
     private List<IpKeyNode> ipConnectedNodes;
 
